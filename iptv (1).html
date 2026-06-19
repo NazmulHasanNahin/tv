@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NahinTV — FIFA 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#0a0a0a;color:#f0f0f0;font-family:'Inter',sans-serif;overflow:hidden}
+
+.wrap{height:100vh;display:grid;grid-template-rows:auto 1fr auto}
+
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;
+  background:rgba(10,10,10,.98);
+  border-bottom:1px solid #1e1e1e;
+}
+.logo{
+  font-size:1.25rem;font-weight:700;
+  background:linear-gradient(120deg,#e50914 30%,#ff6b35);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.live-badge{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.3);
+  padding:4px 12px;border-radius:999px;font-size:.72rem;font-weight:600;color:#ff6b6b;
+}
+.live-dot{width:6px;height:6px;background:#e50914;border-radius:50%;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+iframe{
+  width:100%;height:100%;
+  border:none;display:block;
+  background:#000;
+}
+
+.bottom-bar{
+  background:#141414;border-top:1px solid #1e1e1e;
+  padding:10px 22px;display:flex;align-items:center;justify-content:space-between;
+}
+.ch-info{display:flex;align-items:center;gap:10px}
+.ch-icon{width:38px;height:38px;background:#1e1e1e;border:1px solid #252525;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.ch-name{font-size:.88rem;font-weight:600}
+.ch-sub{font-size:.68rem;color:#555;margin-top:2px}
+.live-tag{background:#e50914;color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">NahinTV</div>
+    <div class="live-badge"><div class="live-dot"></div>FIFA 2026 LIVE</div>
+  </header>
+
+  <iframe
+    src="https://fifalive.click/play"
+    allowfullscreen
+    allow="autoplay; fullscreen; picture-in-picture"
+    scrolling="no"
+  ></iframe>
+
+  <div class="bottom-bar">
+    <div class="ch-info">
+      <div class="ch-icon">⚽</div>
+      <div>
+        <div class="ch-name">FIFA World Cup 2026</div>
+        <div class="ch-sub">fifalive.click</div>
+      </div>
+    </div>
+    <div class="live-tag">LIVE</div>
+  </div>
+</div>
+</body>
+</html>
