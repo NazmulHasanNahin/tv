@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NahinTV — FIFA 2026</title>
+<title>NArena — FIFA 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -47,19 +47,32 @@ iframe{
 .live-tag{background:#e50914;color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.8px}
 </style>
 </head>
+<script>
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement) {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch(() => {});
+    }
+  } else {
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+  }
+});
+</script>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">NahinTV</div>
+    <div class="logo">NArena</div>
     <div class="live-badge"><div class="live-dot"></div>FIFA 2026 LIVE</div>
   </header>
 
   <iframe
-    src="https://fifalive.click/play"
-    allowfullscreen
-    allow="autoplay; fullscreen; picture-in-picture"
-    scrolling="no"
-  ></iframe>
+  src="https://fifalive.click/play"
+  allowfullscreen
+  allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
+  scrolling="no"
+></iframe>
 
   <div class="bottom-bar">
     <div class="ch-info">
