@@ -2,15 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>NArena — FIFA 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:#0a0a0a;color:#f0f0f0;font-family:'Inter',sans-serif;overflow:hidden}
-
 .wrap{height:100vh;display:grid;grid-template-rows:auto 1fr auto}
-
 header{
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 22px;
@@ -26,15 +24,52 @@ header{
   display:flex;align-items:center;gap:6px;
   background:rgba(229,9,20,.12);border:1px solid rgba(229,9,20,.3);
   padding:4px 12px;border-radius:999px;font-size:.72rem;font-weight:600;color:#ff6b6b;
+  transition:background .3s,border-color .3s,color .3s;
 }
-.live-dot{width:6px;height:6px;background:#e50914;border-radius:50%;animation:pulse 1.4s infinite}
+.live-badge.connecting{background:rgba(255,193,7,.12);border-color:rgba(255,193,7,.3);color:#ffc107}
+.live-badge.offline{background:rgba(120,120,120,.12);border-color:rgba(120,120,120,.3);color:#999}
+.live-dot{width:6px;height:6px;background:currentColor;border-radius:50%;animation:pulse 1.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
+.player{position:relative;width:100%;height:100%;background:#000}
 iframe{
   width:100%;height:100%;
   border:none;display:block;
   background:#000;
 }
+
+.overlay{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;
+  background:#0a0a0a;
+  transition:opacity .3s ease;
+  z-index:5;
+}
+.overlay.hidden{opacity:0;pointer-events:none}
+.spinner{
+  width:38px;height:38px;border-radius:50%;
+  border:3px solid #222;border-top-color:#e50914;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.overlay-text{font-size:.82rem;color:#888}
+.retry-btn{
+  margin-top:6px;
+  background:#e50914;color:#fff;border:none;
+  font-family:inherit;font-weight:600;font-size:.78rem;
+  padding:8px 18px;border-radius:8px;cursor:pointer;
+}
+.retry-btn:hover{background:#ff1a25}
+
+.pip-btn{
+  background:#1e1e1e;border:1px solid #252525;color:#ccc;
+  width:38px;height:38px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1rem;
+}
+.pip-btn:hover{background:#252525}
+.pip-btn[hidden]{display:none}
 
 .bottom-bar{
   background:#141414;border-top:1px solid #1e1e1e;
@@ -44,6 +79,9 @@ iframe{
 .ch-icon{width:38px;height:38px;background:#1e1e1e;border:1px solid #252525;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
 .ch-name{font-size:.88rem;font-weight:600}
 .ch-sub{font-size:.68rem;color:#555;margin-top:2px}
+.ch-sub a{color:#666;text-decoration:none;font-weight:700}
+.ch-sub a:hover{color:#e50914;text-decoration:underline}
+.right-controls{display:flex;align-items:center;gap:10px}
 .live-tag{background:#e50914;color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.8px}
 </style>
 </head>
@@ -64,25 +102,144 @@ document.addEventListener("fullscreenchange", () => {
 <div class="wrap">
   <header>
     <div class="logo">NArena</div>
-    <div class="live-badge"><div class="live-dot"></div>FIFA 2026 LIVE</div>
+    <div class="live-badge connecting" id="statusBadge"><div class="live-dot"></div><span id="statusText">CONNECTING</span></div>
   </header>
 
-  <iframe
-  src="https://fifalive.click/play"
-  allowfullscreen
-  allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
-  scrolling="no"
-></iframe>
+  <div class="player">
+    <iframe
+      id="stream"
+      src="https://fifalive.click/play"
+      allowfullscreen
+      allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
+      scrolling="no"
+    ></iframe>
+
+    <div class="overlay" id="overlay">
+      <div class="spinner" id="spinner"></div>
+      <div class="overlay-text" id="overlayText">Connecting to stream…</div>
+      <button class="retry-btn" id="retryBtn" hidden>Retry</button>
+    </div>
+  </div>
 
   <div class="bottom-bar">
     <div class="ch-info">
       <div class="ch-icon">⚽</div>
       <div>
         <div class="ch-name">FIFA World Cup 2026</div>
+        <div class="ch-sub">Made by <a href="https://www.instagram.com/ok_nahin_/" target="_blank" rel="noopener">Nahin</a></div>
       </div>
     </div>
-    <div class="live-tag">LIVE</div>
+    <div class="right-controls">
+      <button class="pip-btn" id="pipBtn" hidden title="Pop out">⧉</button>
+      <div class="live-tag">LIVE</div>
+    </div>
   </div>
 </div>
+
+<script>
+(function(){
+  const iframe = document.getElementById('stream');
+  const overlay = document.getElementById('overlay');
+  const overlayText = document.getElementById('overlayText');
+  const spinner = document.getElementById('spinner');
+  const retryBtn = document.getElementById('retryBtn');
+  const statusBadge = document.getElementById('statusBadge');
+  const statusText = document.getElementById('statusText');
+  const baseSrc = iframe.src;
+
+  const LOAD_TIMEOUT = 8000;
+  const MAX_AUTO_RETRIES = 3;
+  let attempts = 0;
+  let timeoutId = null;
+  let loaded = false;
+
+  function setStatus(state){
+    statusBadge.classList.remove('connecting','offline');
+    if(state === 'live'){
+      statusText.textContent = 'FIFA 2026 LIVE';
+    } else if(state === 'connecting'){
+      statusBadge.classList.add('connecting');
+      statusText.textContent = attempts > 1 ? 'RECONNECTING' : 'CONNECTING';
+    } else {
+      statusBadge.classList.add('offline');
+      statusText.textContent = 'OFFLINE';
+    }
+  }
+
+  function showOverlay(text, showRetry){
+    overlay.classList.remove('hidden');
+    overlayText.textContent = text;
+    spinner.hidden = !!showRetry;
+    retryBtn.hidden = !showRetry;
+  }
+
+  function hideOverlay(){
+    overlay.classList.add('hidden');
+  }
+
+  function startLoad(){
+    loaded = false;
+    setStatus('connecting');
+    showOverlay(attempts > 1 ? `Reconnecting… (attempt ${attempts})` : 'Connecting to stream…', false);
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(onTimeout, LOAD_TIMEOUT);
+  }
+
+  function onTimeout(){
+    if(loaded) return;
+    if(attempts < MAX_AUTO_RETRIES){
+      retry();
+    } else {
+      setStatus('offline');
+      showOverlay('Stream not responding', true);
+    }
+  }
+
+  function retry(){
+    attempts++;
+    startLoad();
+    iframe.src = baseSrc + (baseSrc.includes('?') ? '&' : '?') + '_r=' + Date.now();
+  }
+
+  iframe.addEventListener('load', () => {
+    loaded = true;
+    clearTimeout(timeoutId);
+    setStatus('live');
+    setTimeout(hideOverlay, 250);
+  });
+
+  retryBtn.addEventListener('click', () => {
+    retry();
+  });
+
+  attempts = 1;
+  startLoad();
+
+  const pipBtn = document.getElementById('pipBtn');
+  const playerEl = document.querySelector('.player');
+  const playerParent = playerEl.parentNode;
+  const playerNextSibling = playerEl.nextSibling;
+  let pipWindow = null;
+
+  if (window.documentPictureInPicture) {
+    pipBtn.hidden = false;
+    pipBtn.addEventListener('click', async () => {
+      if (pipWindow) { pipWindow.close(); return; }
+      try {
+        pipWindow = await documentPictureInPicture.requestWindow({ width: 420, height: 240 });
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.style.background = '#000';
+        pipWindow.document.body.appendChild(playerEl);
+        pipWindow.addEventListener('pagehide', () => {
+          playerParent.insertBefore(playerEl, playerNextSibling);
+          pipWindow = null;
+        });
+      } catch (e) {
+        console.warn('Picture-in-picture not available:', e);
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
