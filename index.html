@@ -82,7 +82,9 @@ iframe{
 .ch-sub a{color:#666;text-decoration:none;font-weight:700}
 .ch-sub a:hover{color:#e50914;text-decoration:underline}
 .right-controls{display:flex;align-items:center;gap:10px}
-.live-tag{background:#e50914;color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.8px}
+.live-tag{background:#e50914;color:#fff;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.8px;transition:background .3s,color .3s}
+.live-tag.connecting{background:#ffc107;color:#1a1a1a}
+.live-tag.offline{background:#444;color:#bbb}
 </style>
 </head>
 <script>
@@ -108,7 +110,6 @@ document.addEventListener("fullscreenchange", () => {
   <div class="player">
     <iframe
       id="stream"
-      src="https://fifalive.click/play"
       allowfullscreen
       allow="autoplay; fullscreen; picture-in-picture; orientation-lock"
       scrolling="no"
@@ -131,7 +132,7 @@ document.addEventListener("fullscreenchange", () => {
     </div>
     <div class="right-controls">
       <button class="pip-btn" id="pipBtn" hidden title="Pop out">⧉</button>
-      <div class="live-tag">LIVE</div>
+      <div class="live-tag connecting" id="liveTag">CONNECTING</div>
     </div>
   </div>
 </div>
@@ -145,24 +146,35 @@ document.addEventListener("fullscreenchange", () => {
   const retryBtn = document.getElementById('retryBtn');
   const statusBadge = document.getElementById('statusBadge');
   const statusText = document.getElementById('statusText');
-  const baseSrc = iframe.src;
+  const liveTag = document.getElementById('liveTag');
+
+  const SOURCES = [
+    atob('aHR0cHM6Ly9maWZhbGl2ZS5jbGljay9wbGF5')
+  ];
+  let sourceIndex = 0;
 
   const LOAD_TIMEOUT = 8000;
-  const MAX_AUTO_RETRIES = 3;
   let attempts = 0;
   let timeoutId = null;
   let loaded = false;
 
   function setStatus(state){
     statusBadge.classList.remove('connecting','offline');
+    liveTag.classList.remove('connecting','offline');
     if(state === 'live'){
       statusText.textContent = 'FIFA 2026 LIVE';
+      liveTag.textContent = 'LIVE';
     } else if(state === 'connecting'){
       statusBadge.classList.add('connecting');
-      statusText.textContent = attempts > 1 ? 'RECONNECTING' : 'CONNECTING';
+      liveTag.classList.add('connecting');
+      const label = attempts > 1 ? 'RECONNECTING' : 'CONNECTING';
+      statusText.textContent = label;
+      liveTag.textContent = label;
     } else {
       statusBadge.classList.add('offline');
+      liveTag.classList.add('offline');
       statusText.textContent = 'OFFLINE';
+      liveTag.textContent = 'OFFLINE';
     }
   }
 
@@ -180,15 +192,22 @@ document.addEventListener("fullscreenchange", () => {
   function startLoad(){
     loaded = false;
     setStatus('connecting');
-    showOverlay(attempts > 1 ? `Reconnecting… (attempt ${attempts})` : 'Connecting to stream…', false);
+    showOverlay(
+      attempts > 1 ? `Trying another source… (${sourceIndex + 1}/${SOURCES.length})` : 'Connecting to stream…',
+      false
+    );
     clearTimeout(timeoutId);
     timeoutId = setTimeout(onTimeout, LOAD_TIMEOUT);
+    const src = SOURCES[sourceIndex];
+    iframe.src = src + (src.includes('?') ? '&' : '?') + '_r=' + Date.now();
   }
 
   function onTimeout(){
     if(loaded) return;
-    if(attempts < MAX_AUTO_RETRIES){
-      retry();
+    if(sourceIndex < SOURCES.length - 1){
+      sourceIndex++;
+      attempts++;
+      startLoad();
     } else {
       setStatus('offline');
       showOverlay('Stream not responding', true);
@@ -196,9 +215,9 @@ document.addEventListener("fullscreenchange", () => {
   }
 
   function retry(){
+    sourceIndex = 0;
     attempts++;
     startLoad();
-    iframe.src = baseSrc + (baseSrc.includes('?') ? '&' : '?') + '_r=' + Date.now();
   }
 
   iframe.addEventListener('load', () => {
